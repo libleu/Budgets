@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#059669"/>
+<title>Mes Enveloppes</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;background:#f8fafc;color:#1e293b}
+*{box-sizing:border-box}body{margin:0;padding:16px}
+.wrap{max-width:680px;margin:0 auto}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+h1{font-size:20px;margin:0}.sub{font-size:12px;color:#64748b;margin:2px 0 12px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.tabs button{border:0;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:500;background:#fff;color:#475569;box-shadow:0 1px 2px rgba(0,0,0,.06);cursor:pointer}
+.tabs button.on{background:#059669;color:#fff}
+input,select{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff}
+.row{display:grid;gap:8px}.r2{grid-template-columns:1fr 1fr}.r3{grid-template-columns:1fr 1fr 1fr}.r5{grid-template-columns:1fr 1fr 1fr 1fr 1fr}
+button.act{background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer}
+button.sec{background:#f1f5f9;color:#334155;border:0;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.chip{border:0;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:500;background:#f1f5f9;color:#475569;cursor:pointer}
+.chip.on{background:#059669;color:#fff}
+.bar{height:8px;background:#f1f5f9;border-radius:999px;overflow:hidden;margin-top:4px}
+.bar>div{height:100%;background:#10b981;border-radius:999px}
+.bar>div.red{background:#f87171}
+.flex{display:flex;justify-content:space-between;align-items:center}
+.sm{font-size:12px;color:#64748b}.xs{font-size:11px}.big{font-size:18px;font-weight:700;color:#059669}
+.warn{background:#fef3c7;color:#92400e;font-size:11px;border-radius:999px;padding:2px 8px;margin-left:6px}
+.item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9}
+.item:last-child{border:0}
+label{font-size:12px;display:block;margin-bottom:2px}
+h2{font-size:14px;margin:0 0 10px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const KEY="mes-enveloppes-pwa";
+const M=["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+const eur=n=>n.toLocaleString("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0});
+const eur2=n=>n.toLocaleString("fr-FR",{style:"currency",currency:"EUR"});
+const today=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+
+const DEF={
+ envs:[
+  {id:"vie",name:"Mensuelle (vie, prêt…)",emoji:"🧾",initial:0,monthly:0,kind:"vie"},
+  {id:"fu",name:"Fonds d'urgence",emoji:"🛟",initial:10000,monthly:0,kind:"ep",alertPct:25},
+  {id:"env",name:"Envies",emoji:"✨",initial:3000,monthly:150,kind:"ep",alertPct:25},
+  {id:"san",name:"Santé",emoji:"🏥",initial:2700,monthly:80,kind:"ep",alertPct:25},
+  {id:"mvc",name:"Maison-Voyages-Cadeaux",emoji:"🏠",initial:4000,monthly:250,kind:"ep",alertPct:25},
+  {id:"ass",name:"Assurance & taxes",emoji:"🚗",initial:0,monthly:80,kind:"ep",alertPct:0,
+   ech:[{name:"Assurance voiture",month:1,amount:660,emoji:"🚗"},
+        {name:"Down Dog (prochaine : oct. 2027)",month:10,amount:60,emoji:"🧘"},
+        {name:"Taxe habitation (2026 payée notaire ; prochaine nov. 2027)",month:11,amount:250,emoji:"🏛️"}]},
+  {id:"rscpi",name:"Retraite — SCPI",emoji:"🌱",initial:96900,monthly:0,kind:"ep",val:true},
+  {id:"rav",name:"Retraite — Assurance-vie",emoji:"🌳",initial:30000,monthly:0,kind:"ep",val:true}],
+ rec:[
+  {id:"r1",name:"Mobile",amount:16,envId:"vie",type:"out",day:19,from:"2026-11"},
+  {id:"r2",name:"Mutuelle",amount:47,envId:"vie",type:"out",day:25,from:"2026-11"},
+  {id:"r3",name:"Salle de sport",amount:35,envId:"vie",type:"out",day:5,from:"2026-11",until:"2026-12"},
+  {id:"r4",name:"Rente SCPI (transition, vers courant)",amount:350,envId:"vie",type:"in",day:5,from:"2026-11",until:"2026-12"},
+  {id:"r5",name:"Rente SCPI réinvestie",amount:350,envId:"rscpi",type:"in",day:5,from:"2027-01"},
+  {id:"r6",name:"Aide parents",amount:50,envId:"rscpi",type:"in",day:10,from:"2026-11"},
+  {id:"r7",name:"Versement assurance-vie",amount:100,envId:"rav",type:"in",day:5,from:"2027-01"}],
+ subs:[["Vie commune","🏠",350],["Prêt","🏦",150],["Mutuelle","🩺",47],["Mobile","📱",16],["Salle de sport","🏋️",35],["Plaisir & divers","🎲",225]],
+ salaire:1500, txs:[]};
+
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))||null}catch(e){S=null}
+if(!S)S=JSON.parse(JSON.stringify(DEF));
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const env=id=>S.envs.find(e=>e.id===id);
+const TM=today().slice(0,7), mNum=+TM.slice(5,7);
+const active=(r,m)=>r.from<=m&&(!r.until||r.until>=m);
+
+function bal(e){
+ const flows=S.txs.filter(t=>t.envId===e.id&&t.type!=="reval");
+ let base=e.initial,bd="0";
+ const rev=S.txs.filter(t=>t.envId===e.id&&t.type==="reval").sort((a,b)=>a.date<b.date?-1:1);
+ if(e.val&&rev.length){const l=rev[rev.length-1];base=l.amount;bd=l.date}
+ const f=(bd==="0"?flows:flows.filter(t=>t.date>bd)).reduce((s,t)=>s+(t.type==="in"?t.amount:-t.amount),0);
+ return base+f;}
+function contrib(e){return e.initial+S.txs.filter(t=>t.envId===e.id&&t.type!=="reval").reduce((s,t)=>s+(t.type==="in"?t.amount:-t.amount),0)}
+
+let tab="mois", f={type:"out",env:"vie",amount:"",cat:S.subs[0][0],date:today(),note:""}, payAmt=S.salaire;
+
+function addTx(){
+ const v=parseFloat(f.amount.replace(",",".")); if(!v||v<=0)return;
+ S.txs.unshift({id:uid(),date:f.date,envId:f.env,type:f.type,amount:v,
+  cat:f.type==="out"&&env(f.env)&&env(f.env).kind==="vie"?f.cat:undefined,note:f.note||undefined});
+ save();f.amount="";f.note="";render();}
+
+function applyRec(){
+ const ex=new Set(S.txs.filter(t=>t.rec&&t.date.slice(0,7)===TM).map(t=>t.rec));
+ const n=S.rec.filter(r=>active(r,TM)&&!ex.has(r.id)).map(r=>({id:uid(),
+  date:TM+"-"+String(Math.min(r.day,28)).padStart(2,"0"),envId:r.envId,type:r.type,amount:r.amount,note:r.name,rec:r.id}));
+ if(!n.length){alert("Récurrents déjà appliqués ce mois-ci.");return}
+ S.txs.unshift(...n);save();render();}
+
+function payday(){
+ const plan=S.envs.filter(e=>e.kind==="ep"&&e.monthly>0), tot=plan.reduce((s,e)=>s+e.monthly,0);
+ let ep=0; plan.forEach(e=>{ep+=Math.round(e.monthly/tot*payAmt)});
+ const msg=plan.map(e=>e.emoji+" "+e.name.split(" (")[0]+" : "+eur(Math.round(e.monthly/tot*payAmt))).join("\n");
+ if(confirm("✂️ Découper "+eur(payAmt)+" ?\n\n"+msg+"\n🧾 Reste → Mensuelle : "+eur(Math.max(0,payAmt-ep))+"\n\n(OK = valider)")){
+  plan.forEach(e=>{const a=Math.round(e.monthly/tot*payAmt); if(a>0)S.txs.unshift({id:uid(),date:today(),envId:e.id,type:"in",amount:a,note:"Découpage paie"})});
+  const v=Math.max(0,payAmt-ep); if(v>0)S.txs.unshift({id:uid(),date:today(),envId:"vie",type:"in",amount:v,note:"Paie → budget de vie"});
+  save();render();}}
+
+function delTx(id){S.txs=S.txs.filter(t=>t.id!==id);save();render()}
+
+function render(){
+ const mt=S.txs.filter(t=>t.date.slice(0,7)===TM);
+ const vd=mt.filter(t=>t.type==="out"&&t.envId==="vie");
+ const vt=vd.reduce((s,t)=>s+t.amount,0);
+ const vb=S.subs.reduce((s,c)=>s+c[2],0);
+ const plan=S.envs.filter(e=>e.kind==="ep"&&e.monthly>0);
+ const pt=plan.reduce((s,e)=>s+e.monthly,0);
+ const er=mt.filter(t=>t.type==="in"&&env(t.envId)&&env(t.envId).kind==="ep").reduce((s,t)=>s+t.amount,0);
+ const epTot=S.envs.filter(e=>e.kind==="ep").reduce((s,e)=>s+bal(e),0);
+ const h=[];
+ h.push('<h1>💰 Mes Enveloppes</h1><div class="flex"><div class="sub">Données 100 % locales</div><div style="text-align:right"><div class="big">'+eur(epTot)+'</div><div class="xs" style="color:#64748b">épargne totale</div></div></div>');
+ h.push('<div class="tabs">'+[["mois","📅 Ce mois-ci"],["envs","🗂️ Enveloppes"],["histo","📜 Historique"],["regl","⚙️ Réglages"]].map(function(p){return '<button class="'+(tab===p[0]?"on":"")+'" onclick="tab=\''+p[0]+'\';render()">'+p[1]+'</button>'}).join("")+'</div>');
+
+ // saisie rapide
+ h.push('<div class="card"><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center"><span style="font-size:13px;font-weight:600">➕</span>'
+  +'<button class="chip '+(f.type==="out"?"on":"")+'" onclick="f.type=\'out\';render()">− Dépense</button>'
+  +'<button class="chip '+(f.type==="in"?"on":"")+'" onclick="f.type=\'in\';render()">+ Entrée</button>'
+  +'<button class="chip '+(f.type==="reval"?"on":"")+'" onclick="f.type=\'reval\';if(!env(f.env).val){f.env=\'rscpi\'};render()">🔄 Valeur</button></div>'
+  +'<div class="row r5">'
+  +'<input type="number" placeholder="€" value="'+f.amount+'" oninput="f.amount=this.value">'
+  +'<select onchange="f.env=this.value">'+S.envs.map(function(e){return '<option value="'+e.id+'" '+(f.env===e.id?"selected":"")+'>'+e.emoji+" "+e.name.split(" (")[0]+'</option>'}).join("")+'</select>'
+  +(f.type==="out"&&env(f.env)&&env(f.env).kind==="vie"?'<select onchange="f.cat=this.value">'+S.subs.map(function(c){return '<option '+(f.cat===c[0]?"selected":"")+'>'+c[0]+'</option>'}).join("")+'</select>':"")
+  +'<input type="date" value="'+f.date+'" onchange="f.date=this.value">'
+  +'<button class="act" onclick="addTx()">Ajouter</button></div>'
+  +'<input placeholder="Note (facultatif)" style="margin-top:8px" value="'+(f.note||"")+'" oninput="f.note=this.value">'
+  +(f.type==="reval"?'<p class="xs" style="color:#d97706;margin:6px 0 0">💡 Valeur totale du support (relevé SCPI/AV), 2×/an suffit.</p>':"")+'</div>');
+
+ if(tab==="mois"){
+  h.push('<div class="card"><h2>📆 Routine du mois</h2>'
+   +'<div class="row r2" style="margin-bottom:8px"><input type="number" value="'+payAmt+'" oninput="payAmt=+this.value"><button class="act" onclick="payday()">✂️ Découper ma paie</button></div>'
+   +'<div class="sm" style="margin-bottom:6px">🔁 Récurrents actifs :</div>'
+   +'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">'+(S.rec.filter(function(r){return active(r,TM)}).map(function(r){return '<span class="xs" style="background:#f1f5f9;border-radius:999px;padding:2px 8px">'+(r.type==="out"?"−":"+")+r.amount+" "+r.name+'</span>'}).join("")||'<span class="xs">aucun</span>')+'</div>'
+   +'<button class="sec" onclick="applyRec()">Appliquer les récurrents</button></div>');
+  h.push('<div class="row r3" style="margin-bottom:12px">'
+   +'<div class="card"><div class="xs" style="color:#64748b">Épargne (fait/plan)</div><div style="font-weight:700;color:#059669">'+eur(er)+' <span class="xs" style="color:#94a3b8">/ '+eur(pt)+'</span></div></div>'
+   +'<div class="card"><div class="xs" style="color:#64748b">Vie — dépensé</div><div style="font-weight:700">'+eur(vt)+' <span class="xs" style="color:#94a3b8">/ '+eur(vb)+'</span></div></div>'
+   +'<div class="card"><div class="xs" style="color:#64748b">Écritures du mois</div><div style="font-weight:700">'+mt.length+'</div></div></div>');
+  h.push('<div class="card"><h2>🧾 Budget de vie — '+M[mNum-1]+'</h2>'+S.subs.map(function(c){
+   const sp=vd.filter(function(t){return t.cat===c[0]}).reduce(function(s,t){return s+t.amount},0), pc=Math.min(100,Math.round(sp/c[2]*100));
+   return '<div style="margin-bottom:8px"><div class="flex sm"><span>'+c[1]+" "+c[0]+'</span><span style="'+(sp>c[2]?"color:#ef4444;font-weight:700":"")+'">'+eur2(sp)+" / "+eur(c[2])+'</span></div><div class="bar"><div class="'+(sp>c[2]?"red":"")+'" style="width:'+pc+'%"></div></div></div>'}).join("")+'</div>');
+  const a=env("ass"), cum=bal(a);
+  h.push('<div class="card"><h2>🚗 Échéances annuelles</h2>'+(a.ech||[]).sort(function(x,y){return x.month-y.month}).map(function(e){
+   const up=e.month>=mNum;
+   return '<div class="flex sm"><span>'+e.emoji+" "+e.name+" — "+M[e.month-1]+'</span><span style="color:'+(up?(cum>=e.amount?"#059669":"#d97706"):"#94a3b8")+'">'+eur(e.amount)+" "+(up?(cum>=e.amount?"✅":"⚠️ mis de côté : "+eur(cum)):"(passée)")+'</span></div>'}).join("")+'</div>');
+ }
+ if(tab==="envs"){
+  h.push(S.envs.map(function(e){
+   const b=bal(e), g=e.val?b-contrib(e):0;
+   const seuil=(e.initial*(e.alertPct||0))/100, low=e.kind==="ep"&&seuil>0&&b<seuil&&e.id!=="ass";
+   let extra="";
+   if(e.id==="fu")extra='<p class="xs" style="color:#64748b;margin:6px 0 0">🛟 Intouchable — il vous protège.</p>';
+   if(e.id==="san")extra='<p class="xs" style="color:#64748b;margin:6px 0 0">Les remboursements reviennent ici en « + entrée ».</p>';
+   if(e.id==="env")extra='<p class="xs" style="color:#64748b;margin:6px 0 0">Dépensez sans culpabilité — c\'est fait pour ça.</p>';
+   return '<div class="card"><div class="flex"><div style="font-weight:600">'+e.emoji+" "+e.name+(low?'<span class="warn">⚠️ sous le seuil ('+eur(seuil)+')</span>':"")+'</div><div class="sm"><b style="color:#059669;font-size:15px">'+eur(b)+'</b>'+(e.monthly>0?' <span style="color:#94a3b8">· '+eur(e.monthly)+'/mois</span>':"")+'</div></div>'+extra
+   +(e.val&&g!==0?'<p class="xs" style="color:'+(g>0?"#059669":"#64748b")+';margin:6px 0 0">'+(g>0?"📈":"📉")+" Versé : "+eur(contrib(e))+" — performance : <b>"+(g>0?"+":"")+eur2(g)+'</b></p>':"")+'</div>'}).join(""));
+ }
+ if(tab==="histo"){
+  h.push('<div class="card">'+(S.txs.length===0?'<p class="sm" style="color:#94a3b8">Aucune écriture. Commencez par « Découper ma paie » !</p>':"")
+  +[...S.txs].sort(function(a,b){return b.date<a.date?-1:1}).map(function(t){const e=env(t.envId);
+   return '<div class="item"><div><div style="font-size:13px;font-weight:500">'+(e?e.emoji+" "+e.name.split(" (")[0]:"?")+(t.cat?" · "+t.cat:"")+'</div><div class="xs" style="color:#94a3b8">'+t.date+" · "+(t.note||"—")+'</div></div>'
+   +'<div style="display:flex;gap:10px;align-items:center"><b style="color:'+(t.type==="in"?"#059669":t.type==="out"?"#334155":"#6366f1")+'">'+(t.type==="out"?"−":"+")+eur2(t.amount)+'</b><button class="sec" style="padding:2px 8px" onclick="delTx(\''+t.id+'\')">✕</button></div></div>'}).join("")+'</div>');
+ }
+ if(tab==="regl"){
+  h.push('<div class="card"><h2>💶 Salaire de référence</h2><input type="number" value="'+S.salaire+'" onchange="S.salaire=+this.value;payAmt=S.salaire;save();render()"><p class="xs" style="color:#64748b;margin:4px 0 0">Montant par défaut du découpage (ajustable au moment de couper).</p></div>');
+  h.push('<div class="card"><h2>💾 Données</h2><div style="display:flex;gap:8px"><button class="sec" onclick="exp()">⬇️ Exporter (JSON)</button><label class="sec" style="cursor:pointer">⬆️ Importer<input type="file" accept=".json" style="display:none" onchange="imp(this)"></label></div>'
+  +'<p class="xs" style="color:#64748b;margin:8px 0 0">Tout est stocké dans CE navigateur sur CET appareil. Exportez régulièrement.</p></div>');
+  h.push('<div class="card"><h2>🗂️ Enveloppes (nom · plan €/mois)</h2>'+S.envs.map(function(e,i){return '<div class="row r2" style="margin-bottom:6px"><input value="'+e.name+'" onchange="S.envs['+i+'].name=this.value;save()"><input type="number" value="'+e.monthly+'" onchange="S.envs['+i+'].monthly=+this.value;save()"></div>'}).join("")+'</div>');
+  h.push('<div class="card"><h2>🔁 Récurrents (nom · € · jour · du · jusqu\'à)</h2>'+S.rec.map(function(r,i){return '<div class="row" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr;margin-bottom:6px">'
+   +'<input value="'+r.name+'" onchange="S.rec['+i+'].name=this.value;save()">'
+   +'<input type="number" value="'+r.amount+'" onchange="S.rec['+i+'].amount=+this.value;save()">'
+   +'<input type="number" value="'+r.day+'" onchange="S.rec['+i+'].day=+this.value;save()">'
+   +'<input value="'+r.from+'" onchange="S.rec['+i+'].from=this.value;save()">'
+   +'<input value="'+(r.until||"")+'" placeholder="—" onchange="S.rec['+i+'].until=this.value||undefined;save()"></div>'}).join("")+'</div>');
+ }
+ document.getElementById("app").innerHTML=h.join("");
+}
+function exp(){const b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");
+ a.href=u;a.download="mes-enveloppes.json";a.click();URL.revokeObjectURL(u);}
+function imp(inp){const fi=inp.files[0];if(!fi)return;fi.text().then(function(t){try{const d=JSON.parse(t);S=Object.assign({},S,d);save();render()}catch(e){alert("Fichier invalide")}});}
+render();
+</script>
+</body>
+</html>
